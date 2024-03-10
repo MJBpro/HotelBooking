@@ -1,45 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using HotelBooking.Core;
+﻿using HotelBooking.Core;
 using HotelBooking.Core.Interfaces;
 
 namespace HotelBooking.Mvc.Models
 {
-    public class BookingViewModel : IBookingViewModel
+    public class BookingViewModel(IRepository<Booking> repository, IBookingManager manager) : IBookingViewModel
     {
-        private IRepository<Booking> bookingRepository;
-        private IBookingManager bookingManager;
         private int yearToDisplay;
 
-        public BookingViewModel(IRepository<Booking> repository, IBookingManager manager)
-        {
-            bookingRepository = repository;
-            bookingManager = manager;
-        }
-
-        public IEnumerable<Booking> Bookings
-        {
-            get
-            {
-                return bookingRepository.GetAll();
-            }
-        }
+        public IEnumerable<Booking> Bookings => repository.GetAll();
 
         public int YearToDisplay
         {
             get
             {
-                int minBookingYear = MinBookingDate.Year;
-                int maxBookingYear = MaxBookingDate.Year;
-                if (yearToDisplay < minBookingYear)
-                    return minBookingYear;
-                else if (yearToDisplay > maxBookingYear)
-                    return maxBookingYear;
-                else
-                    return yearToDisplay;
+                var minBookingYear = MinBookingDate.Year;
+                var maxBookingYear = MaxBookingDate.Year;
+                return yearToDisplay < minBookingYear ? minBookingYear :
+                    yearToDisplay > maxBookingYear ? maxBookingYear : yearToDisplay;
             }
-            set { yearToDisplay = value; }
+            set => yearToDisplay = value;
         }
 
         public string GetMonthName(int month)
@@ -50,30 +29,23 @@ namespace HotelBooking.Mvc.Models
         public bool DateIsOccupied(int year, int month, int day)
         {
             bool occupied = false;
-            if (day <= DateTime.DaysInMonth(year, month))
-            {
-                DateTime dt = new DateTime(year, month, day);
-                DateTime occupiedDate = FullyOccupiedDates.FirstOrDefault(d => d == dt);
-                if (occupiedDate > DateTime.MinValue)
-                    occupied = true;
-            }
+            DateTime dt = new DateTime(year, month, day);
+            if (day > DateTime.DaysInMonth(year, month)) return false;
+            var occupiedDate = FullyOccupiedDates.FirstOrDefault(d => d == dt);
+            if (occupiedDate > DateTime.MinValue)
+                occupied = true;
             return occupied;
         }
 
-        public List<DateTime> FullyOccupiedDates
-        {
-            get
-            {
-                return bookingManager.GetFullyOccupiedDates(MinBookingDate, MaxBookingDate);
-            }
-        }
+        public List<DateTime> FullyOccupiedDates => manager.GetFullyOccupiedDates(MinBookingDate, MaxBookingDate);
 
         private DateTime MinBookingDate
         {
             get
             {
                 var bookingStartDates = Bookings.Select(b => b.StartDate);
-                return bookingStartDates.Any() ? bookingStartDates.Min() : DateTime.MinValue;
+                var startDates = bookingStartDates as DateTime[] ?? bookingStartDates.ToArray();
+                return startDates.Any() ? startDates.Min() : DateTime.MinValue;
             }
         }
 
@@ -82,7 +54,8 @@ namespace HotelBooking.Mvc.Models
             get
             {
                 var bookingEndDates = Bookings.Select(b => b.EndDate);
-                return bookingEndDates.Any() ? bookingEndDates.Max() : DateTime.MaxValue;
+                var dateTimes = bookingEndDates as DateTime[] ?? bookingEndDates.ToArray();
+                return dateTimes.Any() ? dateTimes.Max() : DateTime.MaxValue;
             }
         }
 
