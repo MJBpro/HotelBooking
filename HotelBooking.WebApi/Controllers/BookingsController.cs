@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using HotelBooking.Core;
+using HotelBooking.Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 
@@ -7,34 +8,25 @@ namespace HotelBooking.WebApi.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class BookingsController : Controller
-    {
-        private IRepository<Booking> bookingRepository;
-        private IRepository<Customer> customerRepository;
-        private IRepository<Room> roomRepository;
-        private IBookingManager bookingManager;
-
-        public BookingsController(IRepository<Booking> bookingRepos, IRepository<Room> roomRepos,
+    public class BookingsController(IRepository<Booking> bookingRepos, IRepository<Room> roomRepos,
             IRepository<Customer> customerRepos, IBookingManager manager)
-        {
-            bookingRepository = bookingRepos;
-            roomRepository = roomRepos;
-            customerRepository = customerRepos;
-            bookingManager = manager;
-        }
+        : Controller
+    {
+        private IRepository<Customer> customerRepository = customerRepos;
+        private IRepository<Room> roomRepository = roomRepos;
 
         // GET: bookings
         [HttpGet(Name = "GetBookings")]
         public IEnumerable<Booking> Get()
         {
-            return bookingRepository.GetAll();
+            return bookingRepos.GetAll();
         }
 
         // GET bookings/5
         [HttpGet("{id}", Name = "GetBooking")]
         public IActionResult Get(int id)
         {
-            var item = bookingRepository.Get(id);
+            var item = bookingRepos.Get(id);
             if (item == null)
             {
                 return NotFound();
@@ -51,7 +43,7 @@ namespace HotelBooking.WebApi.Controllers
                 return BadRequest();
             }
 
-            bool created = bookingManager.CreateBooking(booking);
+            bool created = manager.CreateBooking(booking);
 
             if (created)
             {
@@ -73,7 +65,7 @@ namespace HotelBooking.WebApi.Controllers
                 return BadRequest();
             }
 
-            var modifiedBooking = bookingRepository.Get(id);
+            var modifiedBooking = bookingRepos.Get(id);
 
             if (modifiedBooking == null)
             {
@@ -86,7 +78,7 @@ namespace HotelBooking.WebApi.Controllers
             modifiedBooking.IsActive = booking.IsActive;
             modifiedBooking.CustomerId = booking.CustomerId;
 
-            bookingRepository.Edit(modifiedBooking);
+            bookingRepos.Edit(modifiedBooking);
             return NoContent();
         }
 
@@ -94,12 +86,12 @@ namespace HotelBooking.WebApi.Controllers
         [HttpDelete("{id}")]
         public IActionResult Delete(int id)
         {
-            if (bookingRepository.Get(id) == null)
+            if (bookingRepos.Get(id) == null)
             {
                 return NotFound();
             }
 
-            bookingRepository.Remove(id);
+            bookingRepos.Remove(id);
             return NoContent();
         }
 
