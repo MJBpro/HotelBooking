@@ -34,7 +34,6 @@ namespace HotelBooking.IntegrationTests
 
             mockRoomService = new Mock<IRoomService>();
 
-            // Create BookingManager with a real booking repository and mocked IRoomService
             var bookingRepo = new BookingRepository(dbContext);
             bookingManager = new BookingManager(bookingRepo, mockRoomService.Object);
         }
