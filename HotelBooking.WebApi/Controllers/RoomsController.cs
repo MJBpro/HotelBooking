@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using HotelBooking.Core;
+﻿using HotelBooking.Core;
 using Microsoft.AspNetCore.Mvc;
 
 

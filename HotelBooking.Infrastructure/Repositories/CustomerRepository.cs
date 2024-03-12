@@ -5,15 +5,8 @@ using HotelBooking.Core;
 
 namespace HotelBooking.Infrastructure.Repositories
 {
-    public class CustomerRepository : IRepository<Customer>
+    public class CustomerRepository(HotelBookingContext context) : IRepository<Customer>
     {
-        private readonly HotelBookingContext db;
-
-        public CustomerRepository(HotelBookingContext context)
-        {
-            db = context;
-        }
-
         public void Add(Customer entity)
         {
             throw new NotImplementedException();
@@ -31,7 +24,7 @@ namespace HotelBooking.Infrastructure.Repositories
 
         public IEnumerable<Customer> GetAll()
         {
-            return db.Customer.ToList();
+            return context.Customer.ToList();
         }
 
         public void Remove(int id)

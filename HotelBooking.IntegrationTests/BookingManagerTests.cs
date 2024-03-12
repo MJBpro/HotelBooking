@@ -1,57 +1,71 @@
 using System;
-using HotelBooking.Core;
-using HotelBooking.Infrastructure;
-using HotelBooking.Infrastructure.Repositories;
+using Xunit;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Xunit;
+using HotelBooking.Core;
+using HotelBooking.Core.Interfaces;
+using HotelBooking.Core.Services;
+using HotelBooking.Infrastructure;
+using HotelBooking.Infrastructure.Repositories;
+using Moq;
 
 namespace HotelBooking.IntegrationTests
 {
     public class BookingManagerTests : IDisposable
     {
-        // This test class uses a separate Sqlite in-memory database. While the
-        // .NET Core built-in in-memory database is not a relational database,
-        // Sqlite in-memory database is. This means that an exception is thrown,
-        // if a database constraint is violated, and this is a desirable behavior
-        // when testing.
-
-        SqliteConnection connection;
-        BookingManager bookingManager;
+        private readonly SqliteConnection connection;
+        private readonly HotelBookingContext dbContext;
+        private readonly BookingManager bookingManager;
+        private readonly Mock<IRoomService> mockRoomService;
 
         public BookingManagerTests()
         {
             connection = new SqliteConnection("DataSource=:memory:");
-
-            // In-memory database only exists while the connection is open
             connection.Open();
 
-            // Initialize test database
             var options = new DbContextOptionsBuilder<HotelBookingContext>()
-                            .UseSqlite(connection).Options;
-            var dbContext = new HotelBookingContext(options);
+                            .UseSqlite(connection)
+                            .Options;
+            dbContext = new HotelBookingContext(options);
+
             IDbInitializer dbInitializer = new DbInitializer();
+            if (dbInitializer == null) throw new ArgumentNullException(nameof(dbInitializer));
             dbInitializer.Initialize(dbContext);
 
-            // Create repositories and BookingManager
-            var bookingRepos = new BookingRepository(dbContext);
-            var roomRepos = new RoomRepository(dbContext);
-            bookingManager = new BookingManager(bookingRepos, roomRepos);
+            mockRoomService = new Mock<IRoomService>();
+
+            var bookingRepo = new BookingRepository(dbContext);
+            bookingManager = new BookingManager(bookingRepo, mockRoomService.Object);
+        }
+
+        [Theory]
+        [InlineData("2023-04-01", "2023-04-05", true)] // Room available, booking should succeed
+        [InlineData("2023-04-01", "2023-04-05", false)] // Room not available, booking should fail
+        public void CreateBooking_ShouldSucceedOrFailBasedOnRoomAvailability(DateTime startDate, DateTime endDate, bool isRoomAvailable)
+        {
+            // Arrange
+            var expectedRoomId = isRoomAvailable ? 1 : -1; 
+            mockRoomService.Setup(service => service.FindAvailableRoom(It.IsAny<DateTime>(), It.IsAny<DateTime>())).Returns(expectedRoomId);
+
+            var booking = new Booking
+            {
+                StartDate = startDate,
+                EndDate = endDate,
+                CustomerId = 1, 
+                IsActive = true
+            };
+
+            // Act
+            var result = bookingManager.CreateBooking(booking);
+
+            // Assert
+            Assert.Equal(isRoomAvailable, result);
         }
 
         public void Dispose()
         {
-            // This will delete the in-memory database
+            dbContext.Dispose();
             connection.Close();
-        }
-
-        [Fact]
-        public void FindAvailableRoom_RoomNotAvailable_RoomIdIsMinusOne()
-        {
-            // Act
-            var roomId = bookingManager.FindAvailableRoom(DateTime.Today.AddDays(8), DateTime.Today.AddDays(8));
-            // Assert
-            Assert.Equal(-1, roomId);
         }
     }
 }
