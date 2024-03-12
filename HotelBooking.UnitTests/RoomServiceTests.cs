@@ -20,14 +20,24 @@ namespace HotelBooking.UnitTests
             roomService = new RoomService(mockRoomRepository.Object, mockBookingRepository.Object);
         }
 
+        public static IEnumerable<object[]> GetDataForAvailableRooms()
+        {
+            
+            var data = new List<object[]>()
+            {
+                new object[] {DateTime.Now.AddDays(2), DateTime.Now.AddDays(4), true, 1 }, // Room available for the period
+                new object[] {DateTime.Now.AddDays(2), DateTime.Now.AddDays(4),  false, -1 }, // No room available for the period
+                new object[] {DateTime.Now.AddDays(-4), DateTime.Now.AddDays(-2),  true, -1 }, // Room available for the period but is in the past
+                new object[] {DateTime.Now.AddDays(-4), DateTime.Now.AddDays(-2),  false, -1 } // No room available for the period and is in the past
+            };
+            return data;
+        }
+
         [Theory]
-        [InlineData("2023-04-01", "2023-04-05", true, 1)]  // Room available for the period
-        [InlineData("2023-04-01", "2023-04-05", false, -1)] // No room available for the period
-        public void FindAvailableRoom_ReturnsCorrectRoomId(string start, string end, bool isAvailable, int expectedRoomId)
+        [MemberData(nameof(GetDataForAvailableRooms))]
+        public void FindAvailableRoom_ReturnsCorrectRoomId(DateTime startDate, DateTime endDate, bool isAvailable, int expectedRoomId)
         {
             // Arrange
-            DateTime startDate = DateTime.Parse(start);
-            DateTime endDate = DateTime.Parse(end);
             var rooms = new List<Room> { new Room { Id = 1 } };
             var bookings = isAvailable ? new List<Booking>() : new List<Booking>
             {
