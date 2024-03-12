@@ -17,6 +17,10 @@ namespace HotelBooking.Core.Services
 
         public int FindAvailableRoom(DateTime startDate, DateTime endDate)
         {
+
+            if (startDate < DateTime.Now || endDate < DateTime.Now)
+                return -1;
+            
             var activeBookings = bookingRepository.GetAll().Where(b => b.IsActive);
             foreach (var room in roomRepository.GetAll())
             {
