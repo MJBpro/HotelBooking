@@ -61,8 +61,15 @@ public class CreateBookingStepDefinitions
             IsActive = true
         };
 
-        var result = bookingManager.CreateBooking(booking);
-        scenarioContext["BookingResult"] = result; 
+        try
+        {
+            var result = bookingManager.CreateBooking(booking);
+            scenarioContext["BookingResult"] = result;
+        }
+        catch (Exception e)
+        {
+            scenarioContext["CaughtException"] = e;
+        }
     }
 
     [When(@"I attempt to create a booking for these dates (.*) to (.*)")]
@@ -101,6 +108,39 @@ public class CreateBookingStepDefinitions
     {
         Assert.True(scenarioContext.ContainsKey("CaughtException"));
         var exception = scenarioContext["CaughtException"];
-        Assert.IsType<Exception>(exception);
+        Console.WriteLine(exception);
+        Assert.IsType<ArgumentNullException>(exception);
+    }
+    
+    
+
+    [Given(@"I have selected an invalid booking")]
+    public void GivenIHaveSelectedAnInvalidBooking()
+    {
+        scenarioContext["booking"] = null;
+    }
+
+    [When(@"I attempt to book a any room")]
+    public void WhenIAttemptToBookAAnyRoom()
+    {
+        scenarioContext.TryGetValue("booking", out Booking? booking);
+        try
+        {
+            var result = bookingManager.CreateBooking(booking);
+            scenarioContext["BookingResult"] = result;
+        }
+        catch (Exception e)
+        {
+            scenarioContext["CaughtException"] = e;
+        }
+    }
+
+    [Then(@"an error should be thrown for invalid dates")]
+    public void ThenAnErrorShouldBeThrownForInvalidDates()
+    {
+        Assert.True(scenarioContext.ContainsKey("CaughtException"));
+        var exception = scenarioContext["CaughtException"];
+        Console.WriteLine(exception);
+        Assert.IsType<ArgumentException>(exception);
     }
 }
